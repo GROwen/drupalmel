@@ -2,34 +2,59 @@ version: 2
 
 jobs:
   build:
-    docker:
-      # specify the version you desire here
-      - image: circleci/php:7.1.5-browsers
-
-      # Specify service dependencies here if necessary
-      # CircleCI maintains a library of pre-built images
-      # documented at https://circleci.com/docs/2.0/circleci-images/
-      # - image: circleci/mysql:9.4
-
+    machine: true
     working_directory: ~/repo
 
     steps:
+#      - attach_workspace:
+#        at: /workspace
+
+      - run: pwd && ls -la
+
       - checkout
 
-      # Download and cache dependencies
-#      - restore_cache:
-#          keys:
-#          - v1-dependencies-{{ checksum "composer.json" }}
-#          # fallback to using the latest cache if no exact match is found
-#          - v1-dependencies-
+      # Restore caches.
+      - restore_cache:
+          keys:
+          - v1-dependencies-{{ checksum "backend/composer.json" }}
+          # fallback to using the latest cache if no exact match is found
+          - v1-dependencies-
 
-#      - run: composer install -n --prefer-dist
+      # Modify permissions so the PHP and Node containers can build their dependencies.
+      - run: sudo chown -R ubuntu.ubuntu *
+
+      # Setup the .env file.
+      # @TODO - Maybe we shouldn't require this as `make install` should do this. Manual tests required.
+      - run: cp .env-example .env
+
+      # Run the Makefile install command.
+      - run: make install
+
+      # Save caches.
+      - save_cache:
+          paths:
+            - ./backend/vendor
+          key: v1-dependencies-{{ checksum "backend/composer.json" }}
+
+#      - persist_to_workspace:
+#          root: /workspace
+#          paths:
+#            - code
+#            - code-dev
+
+  test:
+    machine: true
+    working_directory: ~/
+
+    steps:
+#      - attach_workspace:
+#          at: /workspace
+
       - run: ls -la
 
-#      - save_cache:
-#          paths:
-#            - ./vendor
-#          key: v1-dependencies-{{ checksum "composer.json" }}
-
-#      # run tests!
-#      - run: phpunit
+workflows:
+  version: 2
+  build:
+    jobs:
+      - build
+      - test
