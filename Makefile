@@ -28,6 +28,21 @@ clean-frontend:
 	$(call title,Removing frontend build files)
 	$(call exec,cd frontend && rm -rf .nuxt dist node_modules)
 
+## Export the installed Drupal database.
+db-export:
+	$(call title,Exporting database backup)
+	$(call exec,docker-compose exec php drush sql-dump --result-file=/var/www/database/$(filter-out $@,$(MAKECMDGOALS)))
+
+## Import a database backup.
+db-import:
+	$(call title,Importing database backup)
+	$(call exec,docker-compose exec php drush sqlc < /var/www/database/$(filter-out $@,$(MAKECMDGOALS)))
+
+## Check if MariaDB is running.
+db-status:
+	$(call title,Ensuring MariaDB is running)
+	$(call exec,docker-compose exec mariadb make check-ready -f /usr/local/bin/actions.mk max_try=12 wait_seconds=5)
+
 ## Stop docker containers.
 down:
 	$(call title,Stopping docker containers)
@@ -69,7 +84,7 @@ init-env:
 	fi
 
 ## Install Drupal.
-install: init-env build
+install: init-env build db-status
 	$(call title,Installing Drupal)
 	$(call exec,docker-compose exec php drush --root=$(DRUPAL_ROOT) -y si contenta_jsonapi install_configure_form.include_recipes_magazin=NULL)
 
@@ -79,9 +94,8 @@ install: init-env build
 
 	$(call title,Installation complete)
 	@printf "${GREEN}Frontend :${RESET} http://$(PROJECT_BASE_URL)"
-	@printf "${GREEN}Backend  :${RESET} $(shell docker-compose exec php drush --root=$(DRUPAL_ROOT) -l http://cms.$(PROJECT_BASE_URL) uli)*"
+	@printf "${GREEN}Backend  :${RESET} http://cms.$(PROJECT_BASE_URL)"
 	@printf "${GREEN}MailHog  :${RESET} http://mailhog.$(PROJECT_BASE_URL)"
-	@printf "\n* One time login link."
 
 ## Checking project coding standards.
 lint: lint-backend lint-frontend
