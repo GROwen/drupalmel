@@ -43,6 +43,11 @@ dependencies:
 
 # The hooks executed at various points in the lifecycle of the application.
 hooks:
+    # If on a Platform.sh environment install platform cli.
+    build: |
+      if [ "$PLATFORM_APPLICATION" != "" ]; then
+        curl -sS https://platform.sh/cli/installer | php
+      fi
     # The deploy hook runs after your application has been deployed and started.
     deploy: |
       set -e

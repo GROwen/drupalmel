@@ -1,9 +1,13 @@
 name: frontend
 type: nodejs:8.9
 
+dependencies:
+  nodejs:
+    pm2: "^2.0.0"
+
 web:
   commands:
-    start: "npm run build && npm start"
+    start: "npm start"
     #in this setup you will find your application stdout and stderr in /app/run/logs
   locations:
     "/":
@@ -21,3 +25,8 @@ mounts:
   "/run": "shared:files/run"
 
 disk: 512
+
+# The hooks executed at various points in the lifecycle of the application.
+hooks:
+    build: |
+      npm run build
